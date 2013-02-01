@@ -24,18 +24,18 @@
  */
 // constants
 var ResizeMethod = {
-    NEARESTNEIGHBOUR: {name: 'Nearest Neighbour', value: 'Nrst'},
-    BILINEAR: {name: 'Bilinear', value: 'Blnr'},
-    BICUBIC: {name: 'Bicubic', value: 'Bcbc'},
+    // NEARESTNEIGHBOUR: {name: 'Nearest Neighbour', value: 'Nrst'},
+    // BILINEAR: {name: 'Bilinear', value: 'Blnr'},
+    // BICUBIC: {name: 'Bicubic', value: 'Bcbc'},
     BICUBICSMOOTHER: {name: 'Bicubic Smoother', value: 'bicubicSmoother'},
-    BICUBICSHARPER: {name: 'Bicubic Sharper', value: 'bicubicSharper'}
+    // BICUBICSHARPER: {name: 'Bicubic Sharper', value: 'bicubicSharper'}
 };
 var resizeMethodLookup = {};
-resizeMethodLookup[ResizeMethod.NEARESTNEIGHBOUR.name] = ResizeMethod.NEARESTNEIGHBOUR.value;
-resizeMethodLookup[ResizeMethod.BILINEAR.name] = ResizeMethod.BILINEAR.value;
-resizeMethodLookup[ResizeMethod.BICUBIC.name] = ResizeMethod.BICUBIC.value;
+// resizeMethodLookup[ResizeMethod.NEARESTNEIGHBOUR.name] = ResizeMethod.NEARESTNEIGHBOUR.value;
+// resizeMethodLookup[ResizeMethod.BILINEAR.name] = ResizeMethod.BILINEAR.value;
+// resizeMethodLookup[ResizeMethod.BICUBIC.name] = ResizeMethod.BICUBIC.value;
 resizeMethodLookup[ResizeMethod.BICUBICSMOOTHER.name] = ResizeMethod.BICUBICSMOOTHER.value;
-resizeMethodLookup[ResizeMethod.BICUBICSHARPER.name] = ResizeMethod.BICUBICSHARPER.value;
+// resizeMethodLookup[ResizeMethod.BICUBICSHARPER.name] = ResizeMethod.BICUBICSHARPER.value;
 
 var ResizeOptions = {
     REGULAR: 1,
@@ -63,7 +63,7 @@ function saveForWebPNG(doc, outputFolderStr, filename)
     }
 }
 
-function resizeImage(width, method, scaleStyles)
+function resizeImage(width, scaleStyles)
 {
     var action = new ActionDescriptor();
     action.putUnitDouble( charIDToTypeID("Wdth"), charIDToTypeID("#Pxl"), width );
@@ -72,12 +72,13 @@ function resizeImage(width, method, scaleStyles)
         action.putBoolean( stringIDToTypeID("scaleStyles"), true );
     
     action.putBoolean( charIDToTypeID("CnsP"), true );
-    action.putEnumerated( charIDToTypeID("Intr"), charIDToTypeID("Intp"), charIDToTypeID(method) );
+    // action.putEnumerated( charIDToTypeID("Intr"), charIDToTypeID("Intp"), charIDToTypeID(method) );
+    action.putEnumerated( charIDToTypeID("Intr"), charIDToTypeID("Intp"), stringIDToTypeID("bicubicSmoother") );
 
     executeAction( charIDToTypeID("ImgS"), action, DialogModes.NO );
 }
 
-function exportImages(baseName, resizeOption, resizeMethod, scaleStyles)
+function exportImages(baseName, resizeOption, scaleStyles)
 {
     // select a folder to save to
     var folder = Folder.selectDialog(); 
@@ -93,27 +94,29 @@ function exportImages(baseName, resizeOption, resizeMethod, scaleStyles)
 
         // get currect document
         var doc = app.activeDocument;
+        // save for undo
+        var startState = doc.activeHistoryState;       
 
         // create new document based on the current docs values except name which user 
-        var dup = app.documents.add(doc.width, doc.height, doc.resolution, baseName, NewDocumentMode.RGB, DocumentFill.TRANSPARENT);
+        var dup = doc;//app.documents.add(doc.width, doc.height, doc.resolution, baseName, NewDocumentMode.RGB, DocumentFill.TRANSPARENT);
 
         // switch back to origal doc to allow duplicate
-        app.activeDocument = doc;
+        //app.activeDocument = doc;
 
         // duplicate the selected layer (only works for one) at place it in the new doc
-        doc.activeLayer.duplicate(dup);
+        //doc.activeLayer.duplicate(dup);
 
         // switch back to the new document
-        app.activeDocument = dup;
+        //app.activeDocument = dup;
 
         // trim the document so that all that appears is our element
-        dup.trim(TrimType.TRANSPARENT);
+        //dup.trim(TrimType.TRANSPARENT);
 
         // adjust canvas size so that it is an even number of pixels (so scaling down fits on whole pixel)
-        dup.resizeCanvas(Math.ceil(dup.width/2)*2, Math.ceil(dup.height/2)*2, AnchorPosition.TOPLEFT);
+        //dup.resizeCanvas(Math.ceil(dup.width/2)*2, Math.ceil(dup.height/2)*2, AnchorPosition.TOPLEFT);
         
         // normalise name (basic normalisation lower case and hyphenated, modify or remove to taste)
-        var normalisedName = dup.name.toLowerCase().replace(' ', '-');
+        var normalisedName = baseName.toLowerCase().replace(' ', '-');
 
         // export retina image
         if((resizeOption & ResizeOptions.RETINA) != 0) 
@@ -141,7 +144,7 @@ function exportImages(baseName, resizeOption, resizeMethod, scaleStyles)
         if((resizeOption & ResizeOptions.REGULAR) != 0)
         {
             // resize image
-            resizeImage(UnitValue(dup.width/2, "px"), resizeMethod, scaleStyles);
+            resizeImage(UnitValue(dup.width/2, "px"), scaleStyles);
             //dup.resizeImage(dup.width/2, dup.height/2, dup.resolution, resizeMethod);
             
             // If chosen values are cocos2 and saveForIPad, need to add iPad.
@@ -156,17 +159,19 @@ function exportImages(baseName, resizeOption, resizeMethod, scaleStyles)
             saveForWebPNG(dup, folder.fullName, normalisedName + suffix);
         }
         
-        dup.close(SaveOptions.DONOTSAVECHANGES);
+        //dup.close(SaveOptions.DONOTSAVECHANGES);
 
         app.preferences.rulerUnits=originalRulerUnits;
         app.preferences.typeUnits=originalTypeUnits;
+
+        dup.activeHistoryState = startState;
     }
 }
 
 
 function okClickedHandler()
 {
-    var resizeMethod = resizeMethodLookup[exportDialog.methodOptions.selection.text];
+    // var resizeMethod = resizeMethodLookup[exportDialog.methodOptions.selection.text];
     var scaleStyles = exportDialog.scaleStylesCheckBox.value;
     var resizeOption;
     var baseName = exportDialog.namePanel.nameBox.text;
@@ -178,7 +183,8 @@ function okClickedHandler()
     else if(exportDialog.sizesPanel.both.value == true)
         resizeOption = (ResizeOptions.REGULAR | ResizeOptions.RETINA);
     
-    exportImages(baseName, resizeOption, resizeMethod, scaleStyles);
+    // exportImages(baseName, resizeOption, resizeMethod, scaleStyles);
+    exportImages(baseName, resizeOption, scaleStyles);
 }
 
 exportDialog = new Window('dialog', 'Export Selected Layer for iOS'); 
@@ -213,8 +219,8 @@ exportDialog.suffixPanel.suffixBox.preferredSize = [140,20];
 exportDialog.suffixPanel.suffixBox.text = "@2x";
 exportDialog.suffixPanel.saveForIPad = exportDialog.suffixPanel.add('checkbox', undefined, 'Save for iPad');
 
-exportDialog.methodOptions = exportDialog.add('dropdownlist', undefined, [ResizeMethod.NEARESTNEIGHBOUR.name, ResizeMethod.BILINEAR.name, ResizeMethod.BICUBIC.name, ResizeMethod.BICUBICSMOOTHER.name, ResizeMethod.BICUBICSHARPER.name]);
-exportDialog.methodOptions.children[1].selected = true;
+// exportDialog.methodOptions = exportDialog.add('dropdownlist', undefined, [ResizeMethod.NEARESTNEIGHBOUR.name, ResizeMethod.BILINEAR.name, ResizeMethod.BICUBIC.name, ResizeMethod.BICUBICSMOOTHER.name, ResizeMethod.BICUBICSHARPER.name]);
+// exportDialog.methodOptions.children[1].selected = true;
 exportDialog.scaleStylesCheckBox = exportDialog.add('checkbox', undefined, 'Scale Styles');
 exportDialog.scaleStylesCheckBox.value = true;
 
